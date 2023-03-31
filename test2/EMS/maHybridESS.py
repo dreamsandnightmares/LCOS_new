@@ -1,5 +1,5 @@
-from test2.bt.bt_test import LionBattery
-from HT.hydrogenStorage import HT
+from bt.MABattey import LionBattery
+from HT.ma_hydrogenStorage  import HT
 from EL.normalPEM import PEM
 from FC.normalFC import PEMFC
 from PV.PVModel import PVSystem
@@ -7,105 +7,122 @@ import matplotlib.pyplot as plt
 import math
 from price.gridPrice import grid_price
 from data_load.data_load import data_load
+import numpy as np
 class HybridESS(object):
     def __init__(self, bt: LionBattery,ht:HT,el_power,fc_power):
         self.bt = bt
-        self.GridToEnergy = 0
-        self.storageToEnergy = 0
-        self.energyToStorage = 0
         self.ht = ht
+        self.len = len(bt.readSoc())
+        self.GridToEnergy = np.zeros(self.len)
+        self.storageToEnergy = np.zeros(self.len)
+        self.energyToStorage = np.zeros(self.len)
+
         self.el = el_power
         self.fc = fc_power
 
     def initializa(self):
         self.bt.initializa()
         self.ht.initializa()
-        self.GridToEnergy = 0
-        self.storageToEnergy = 0
-        self.energyToStorage = 0
+        self.GridToEnergy = np.zeros(self.len)
+        self.storageToEnergy = np.zeros(self.len)
+        self.energyToStorage = np.zeros(self.len)
 
     def energyStorage(self, energy):
-        if energy >= 0:
-            '充电过程'
-            max_charge = self.bt.max_charge()
-            if energy <= max_charge:
-                self.bt.StateOfCharge(P_BT_ch=energy, P_BT_dc=0)
-                self.GridToEnergy = 0
-                self.storageToEnergy = 0
-                self.energyToStorage = energy
-            else:
-                self.bt.StateOfCharge(P_BT_ch=max_charge, P_BT_dc=0)
-                self.GridToEnergy = 0
-                self.storageToEnergy = 0
-                energyToStorage = max_charge
-                self.energyToStorage = max_charge
+        for i in range(self.len):
 
-                energy = energy -max_charge
-                max_charge = min(self.ht.max_charge(), self.el)
-                if energy <= max_charge:
-                    self.ht.soc(P_el=energy, P_fc=0)
-                    self.GridToEnergy = 0
-                    self.storageToEnergy = 0
-                    self.energyToStorage = energy+energyToStorage
+            P_BT_dc = np.zeros([self.bt.len_])
+            P_BT_ch = np.zeros([self.bt.len_])
+            P_fc = np.zeros([self.ht.len_])
+            P_el = np.zeros([self.ht.len_])
+
+            if energy[i] >= 0:
+                '充电过程'
+                max_charge = self.bt.max_charge()[i]
+                if energy[i] <= max_charge:
+                    P_BT_ch[i] = energy[i]
+                    self.bt.StateOfCharge1(P_BT_ch=P_BT_ch, P_BT_dc=P_BT_dc)
+                    self.bt.soc(i)
+
+                    self.GridToEnergy[i] = 0
+                    self.storageToEnergy[i] = 0
+                    self.energyToStorage[i] = energy[i]
+
                 else:
-                    self.ht.soc(P_el=max_charge, P_fc=0)
-                    self.GridToEnergy = 0
-                    self.storageToEnergy = 0
-                    self.energyToStorage = max_charge+energyToStorage
-        elif energy < 0:
-            '放电过程'
-            SOC = self.bt.readSoc()
-            if SOC > self.bt.SOC_min:
-                max_discharge = self.bt.max_discharge()
-                if abs(energy) <= max_discharge:
-                    self.bt.StateOfCharge(P_BT_ch=0, P_BT_dc=abs(energy))
-                    self.GridToEnergy = 0
-                    self.storageToEnergy = abs(energy)
-                    self.energyToStorage = 0
-                else:
+                    P_BT_ch[i] = max_charge
+                    self.bt.StateOfCharge1(P_BT_ch=P_BT_ch, P_BT_dc=P_BT_dc)
+                    self.bt.soc(i)
+                    self.GridToEnergy[i] = 0
+                    self.storageToEnergy[i] = 0
+                    self.energyToStorage[i] = max_charge
 
-                    self.bt.StateOfCharge(P_BT_ch=0, P_BT_dc=max_discharge)
-                    energy = abs(energy) - max_discharge
-                    stoToenergy=max_discharge
-                    SOC = self.ht.readSOC()
-                    if SOC > self.ht.SOC_Min():
-                        max_discharge = min(self.ht.max_discharge(), self.fc)
-                        if abs(energy) <= max_discharge:
-                            self.ht.soc(P_el=0, P_fc=abs(energy))
-                            self.GridToEnergy = 0
-                            self.storageToEnergy = abs(energy)+stoToenergy
-                            self.energyToStorage = 0
-                        else:
-                            self.ht.soc(P_el=0, P_fc=abs(max_discharge))
-                            self.GridToEnergy = abs(energy) - max_discharge
-                            self.storageToEnergy = max_discharge+stoToenergy
-                            self.energyToStorage = 0
-                    else:
-                        self.GridToEnergy = abs(energy)
-                        self.energyToStorage = 0
-                        self.storageToEnergy = stoToenergy
+                    energyToStorage = max_charge
+                    energy = energy -max_charge
 
-
-            else:
-                    SOC = self.ht.readSOC()
-                    if SOC > self.ht.SOC_Min():
-                        max_discharge = min(self.ht.max_discharge(), self.fc)
-                        if abs(energy) <= max_discharge:
-                            self.ht.soc(P_el=0, P_fc=abs(energy))
-                            self.GridToEnergy = 0
-                            self.storageToEnergy = abs(energy)
-                            self.energyToStorage = 0
-                        else:
-                            self.ht.soc(P_el=0, P_fc=abs(max_discharge))
-                            self.GridToEnergy = abs(energy) - max_discharge
-                            self.storageToEnergy = max_discharge
-                            self.energyToStorage = 0
-                    else:
-                        self.GridToEnergy = abs(energy)
-                        self.energyToStorage = 0
+                    max_charge = min(self.ht.max_charge(), self.el)
+                    if energy <= max_charge:
+                        self.ht.soc(P_el=energy, P_fc=0)
+                        self.GridToEnergy = 0
                         self.storageToEnergy = 0
+                        self.energyToStorage = energy+energyToStorage
+                    else:
+                        self.ht.soc(P_el=max_charge, P_fc=0)
+                        self.GridToEnergy = 0
+                        self.storageToEnergy = 0
+                        self.energyToStorage = max_charge+energyToStorage
+            elif energy < 0:
+                '放电过程'
+                SOC = self.bt.readSoc()
+                if SOC > self.bt.SOC_min:
+                    max_discharge = self.bt.max_discharge()
+                    if abs(energy) <= max_discharge:
+                        self.bt.StateOfCharge(P_BT_ch=0, P_BT_dc=abs(energy))
+                        self.GridToEnergy = 0
+                        self.storageToEnergy = abs(energy)
+                        self.energyToStorage = 0
+                    else:
 
-        return  self.GridToEnergy, self.storageToEnergy, self.energyToStorage
+                        self.bt.StateOfCharge(P_BT_ch=0, P_BT_dc=max_discharge)
+                        energy = abs(energy) - max_discharge
+                        stoToenergy=max_discharge
+                        SOC = self.ht.readSOC()
+                        if SOC > self.ht.SOC_Min():
+                            max_discharge = min(self.ht.max_discharge(), self.fc)
+                            if abs(energy) <= max_discharge:
+                                self.ht.soc(P_el=0, P_fc=abs(energy))
+                                self.GridToEnergy = 0
+                                self.storageToEnergy = abs(energy)+stoToenergy
+                                self.energyToStorage = 0
+                            else:
+                                self.ht.soc(P_el=0, P_fc=abs(max_discharge))
+                                self.GridToEnergy = abs(energy) - max_discharge
+                                self.storageToEnergy = max_discharge+stoToenergy
+                                self.energyToStorage = 0
+                        else:
+                            self.GridToEnergy = abs(energy)
+                            self.energyToStorage = 0
+                            self.storageToEnergy = stoToenergy
+
+
+                else:
+                        SOC = self.ht.readSOC()
+                        if SOC > self.ht.SOC_Min():
+                            max_discharge = min(self.ht.max_discharge(), self.fc)
+                            if abs(energy) <= max_discharge:
+                                self.ht.soc(P_el=0, P_fc=abs(energy))
+                                self.GridToEnergy = 0
+                                self.storageToEnergy = abs(energy)
+                                self.energyToStorage = 0
+                            else:
+                                self.ht.soc(P_el=0, P_fc=abs(max_discharge))
+                                self.GridToEnergy = abs(energy) - max_discharge
+                                self.storageToEnergy = max_discharge
+                                self.energyToStorage = 0
+                        else:
+                            self.GridToEnergy = abs(energy)
+                            self.energyToStorage = 0
+                            self.storageToEnergy = 0
+
+            return  self.GridToEnergy, self.storageToEnergy, self.energyToStorage
 
 
 
@@ -396,7 +413,97 @@ def device_init():
     return pv,bt,el,el_n,fc,fc_n,ht,pd_load,pd_price,pv_output,R_init
 
 
+if __name__ == '__main__':
+    pv, bt, el, el_n, fc, fc_n, ht, pd_load, pd_price, pv_output, R_init = device_init()
+    project_lifetime = 25
+    life_time = 8760
+    ems = HybridESS(bt=bt, ht=ht, el_power=230, fc_power=240
+                    )
+    ems.initializa()
+    ele_cost = 0
+    soc_ = []
+    gridTopower = 0
+    stoTopower = 0
+    energyTosto = 0
+    energy_HESS = []
+    energy_HESS_OLDS = []
+    soc_HESS = []
+    soc_HESS_OLDS = []
+    energy_ch = []
+    energy_dis = []
+    energy_diff = []
+    energy_sys = []
+    for y in range(project_lifetime):
+        for i in range(life_time):
+            energy = pv_output[i] - pd_load[i]
+            energy_diff.append(energy)
+            soc_.append(ht.readSOC())
+            soc_HESS.append(ht.readSOC())
+            ele, sto, eTs = ems.energyStorage(energy)
+            energy_sys.append(abs(ele) + abs(sto) + abs(eTs))
+            energy_ch.append(eTs)
+            gridTopower += ele
+            ele_cost += ele * grid_price(i)
+            stoTopower += sto
+            energyTosto += eTs
+            energy_dis.append(sto)
+    test1 = []
+    for i in range(len(energy_diff)):
+        test1.append(abs(energy_diff[i]) - abs(energy_sys[i]))
+    print(max(test1), min(test1))
+    print(max((energy_diff)))
+    plt.plot(list(range(len(energy_diff[:300]))), energy_diff[:300])
+    plt.plot(list(range(len(energy_diff[:300]))), test1[:300])
+    plt.show()
 
+    print('HybridESS')
+    print(ele_cost, 'grid price')
+    print(stoTopower, 'energy sto')
+    print(energyTosto, 'sto discharge')
+    print(gridTopower, 'gridTopower')
+    #
+    ems = HybridESS_OLDS(bt=bt, ht=ht, el_power=230, fc_power=240, t_start=0, t_end=1000, LIMIT_SUNNY=0.20,
+                         LIMIT_CLOUDY=0.25)
+    ems.initializa()
+    ele_cost = 0
+    soc_ = []
+    gridTopower = 0
+    stoTopower = 0
+    energyTosto = 0
+    energy_HESS = []
+    energy_HESS_OLDS = []
+    soc_HESS = []
+    soc_HESS_OLDS = []
+    energy_ch = []
+    energy_dis = []
+    energy_diff = []
+    energy_sys = []
+    for y in range(project_lifetime):
+        for i in range(life_time):
+            energy = pv_output[i] - pd_load[i]
+            soc_.append(ht.readSOC())
+            soc_HESS.append(ht.readSOC())
+            ele, sto, eTs = ems.energyStorage(energy, i)
+            energy_ch.append(eTs)
+            gridTopower += ele
+            ele_cost += ele * grid_price(i)
+            stoTopower += sto
+            energyTosto += eTs
+            energy_dis.append(sto)
+            energy_diff.append((energy))
+            energy_sys.append(abs(ele) + abs(sto) + abs(eTs))
 
-
-
+    print('HybridESS_OLDS')
+    print(ele_cost, 'grid price')
+    print(stoTopower, 'energy sto')
+    print(energyTosto, 'sto discharge')
+    print(gridTopower, 'gridTopower')
+    #
+    test = []
+    for i in range(len(energy_diff)):
+        test.append(abs(energy_diff[i]) - abs(energy_sys[i]))
+    print(max(test), min(test))
+    print(max((energy_diff)))
+    plt.plot(list(range(len(energy_diff[:300]))), energy_diff[:300])
+    plt.plot(list(range(len(energy_diff[:300]))), test[:300])
+    plt.show()

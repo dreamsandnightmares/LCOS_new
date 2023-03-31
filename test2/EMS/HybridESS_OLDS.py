@@ -396,7 +396,96 @@ def device_init():
     return pv,bt,el,el_n,fc,fc_n,ht,pd_load,pd_price,pv_output,R_init
 
 
+if __name__ == '__main__':
+    pv, bt, el, el_n, fc, fc_n, ht, pd_load, pd_price, pv_output, R_init = device_init()
+    project_lifetime = 25
+    life_time = 8760
+    ems = HybridESS(bt=bt,ht=ht,el_power=230,fc_power=240
+                    )
+    ems.initializa()
+    ele_cost = 0
+    soc_ = []
+    gridTopower = 0
+    stoTopower = 0
+    energyTosto = 0
+    energy_HESS = []
+    energy_HESS_OLDS = []
+    soc_HESS = []
+    soc_HESS_OLDS = []
+    energy_ch = []
+    energy_dis = []
+    energy_diff =[]
+    energy_sys =[]
+    for y in range(project_lifetime):
+        for i in range(life_time):
+            energy = pv_output[i] - pd_load[i]
+            energy_diff.append(energy)
+            soc_.append(ht.readSOC())
+            soc_HESS.append(ht.readSOC())
+            ele, sto, eTs = ems.energyStorage(energy)
+            energy_sys.append(abs(ele)+abs(sto)+abs(eTs))
+            energy_ch.append(eTs)
+            gridTopower += ele
+            ele_cost += ele * grid_price(i)
+            stoTopower += sto
+            energyTosto += eTs
+            energy_dis.append(sto)
+    test1 = []
+    for i in range(len(energy_diff)):
+        test1.append(abs(energy_diff[i]) -abs(energy_sys[i]))
+    print(max(test1),min(test1))
+    print(max((energy_diff)))
+    plt.plot(list(range(len(energy_diff[:300]))),energy_diff[:300])
+    plt.plot(list(range(len(energy_diff[:300]))),test1[:300])
+    plt.show()
 
+    print('HybridESS')
+    print(ele_cost, 'grid price')
+    print(stoTopower, 'energy sto')
+    print(energyTosto, 'sto discharge')
+    print(gridTopower, 'gridTopower')
+    #
+    ems = HybridESS_OLDS(bt=bt, ht=ht, el_power=230, fc_power=240,t_start=0,t_end=1000,LIMIT_SUNNY=0.20,LIMIT_CLOUDY=0.25)
+    ems.initializa()
+    ele_cost = 0
+    soc_ = []
+    gridTopower = 0
+    stoTopower = 0
+    energyTosto = 0
+    energy_HESS = []
+    energy_HESS_OLDS = []
+    soc_HESS = []
+    soc_HESS_OLDS = []
+    energy_ch = []
+    energy_dis = []
+    energy_diff =[]
+    energy_sys =[]
+    for y in range(project_lifetime):
+        for i in range(life_time):
+            energy = pv_output[i] - pd_load[i]
+            soc_.append(ht.readSOC())
+            soc_HESS.append(ht.readSOC())
+            ele, sto, eTs = ems.energyStorage(energy,i)
+            energy_ch.append(eTs)
+            gridTopower += ele
+            ele_cost += ele * grid_price(i)
+            stoTopower += sto
+            energyTosto += eTs
+            energy_dis.append(sto)
+            energy_diff.append((energy))
+            energy_sys.append(abs(ele)+abs(sto)+abs(eTs))
 
-
-
+    print('HybridESS_OLDS')
+    print(ele_cost, 'grid price')
+    print(stoTopower, 'energy sto')
+    print(energyTosto, 'sto discharge')
+    print(gridTopower, 'gridTopower')
+    #
+    test = []
+    for i in range(len(energy_diff)):
+        test.append(abs(energy_diff[i]) -abs(energy_sys[i]))
+    print(max(test),min(test))
+    print(max((energy_diff)))
+    plt.plot(list(range(len(energy_diff[:300]))),energy_diff[:300])
+    plt.plot(list(range(len(energy_diff[:300]))),test[:300])
+    plt.show()
