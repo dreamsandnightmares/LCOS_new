@@ -37,10 +37,11 @@ class HybridESS(object):
                 self.bt.StateOfCharge(P_BT_ch=max_charge, P_BT_dc=0)
                 self.GridToEnergy = 0
                 self.storageToEnergy = 0
-                energyToStorage = max_charge
                 self.energyToStorage = max_charge
 
+                energyToStorage = max_charge
                 energy = energy -max_charge
+
                 max_charge = min(self.ht.max_charge(), self.el)
                 if energy <= max_charge:
                     self.ht.soc(P_el=energy, P_fc=0)

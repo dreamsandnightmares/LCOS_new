@@ -13,7 +13,7 @@ class HT(object):
         # 设置LOH max 与min 没有查到相关数据
 
         self.LOH_t_max = 1
-        self.LOH_t_min = 0.1
+        self.LOH_t_min = 0.2
         self.Cap_H2 = Cap_H2
         self.eta_FC = eta_FC
         self.delta_t = delta_t

@@ -367,22 +367,22 @@ class HybridESS_OLDS(object):
 def device_init():
     pd_load, pd_price, pd_wea_wind, pd_wea_G_dir, pd_wea_G_diff, pd_wea_T, pd_wea_G_hor = data_load()
 
-    pv_cap  = 650
+    pv_cap  = 450
     pv =PVSystem(pv_cap,pd_wea_T=pd_wea_T,pd_wea_G_dir=pd_wea_G_dir,pd_wea_G_diff=pd_wea_G_diff,pd_wea_G_hor=pd_wea_G_hor)
 
     bt_cap = 600
     bt = LionBattery(bt_cap,eta_BT_conv=0.98)
     bt.initializa()
 
-    el_cap = 15
+    el_cap = 300
     el  =PEM()
     el_n = math.ceil(el_cap/el.max_power())
 
-    fc_cap =15
+    fc_cap =350
     fc = PEMFC()
     fc_n  =math.ceil(fc_cap/fc.max_power())
 
-    ht_cap = 2000
+    ht_cap = 1000
     ht = HT(ht_cap,eta_FC=0.6,eta_EL=0.86,delta_t=1)
     ht.initializa()
     pv_output =[]
@@ -398,9 +398,9 @@ def device_init():
 
 if __name__ == '__main__':
     pv, bt, el, el_n, fc, fc_n, ht, pd_load, pd_price, pv_output, R_init = device_init()
-    project_lifetime = 25
-    life_time = 8760
-    ems = HybridESS(bt=bt,ht=ht,el_power=230,fc_power=240
+    project_lifetime = 1
+    life_time = 10
+    ems = HybridESS(bt=bt,ht=ht,el_power=300,fc_power=350
                     )
     ems.initializa()
     ele_cost = 0
@@ -430,22 +430,23 @@ if __name__ == '__main__':
             stoTopower += sto
             energyTosto += eTs
             energy_dis.append(sto)
-    test1 = []
-    for i in range(len(energy_diff)):
-        test1.append(abs(energy_diff[i]) -abs(energy_sys[i]))
-    print(max(test1),min(test1))
-    print(max((energy_diff)))
-    plt.plot(list(range(len(energy_diff[:300]))),energy_diff[:300])
-    plt.plot(list(range(len(energy_diff[:300]))),test1[:300])
-    plt.show()
+    # test1 = []
+    # for i in range(len(energy_diff)):
+    #     test1.append(abs(energy_diff[i]) -abs(energy_sys[i]))
+    # print(max(test1),min(test1))
+    # print(max((energy_diff)))
+    # plt.plot(list(range(len(energy_diff[:300]))),energy_diff[:300])
+    # plt.plot(list(range(len(energy_diff[:300]))),test1[:300])
+    # plt.show()
 
     print('HybridESS')
-    print(ele_cost, 'grid price')
-    print(stoTopower, 'energy sto')
-    print(energyTosto, 'sto discharge')
+    # print(ele_cost, 'grid price')
     print(gridTopower, 'gridTopower')
+    print(stoTopower, 'stoTopower')
+    print(energyTosto, 'energyTosto')
+
     #
-    ems = HybridESS_OLDS(bt=bt, ht=ht, el_power=230, fc_power=240,t_start=0,t_end=1000,LIMIT_SUNNY=0.20,LIMIT_CLOUDY=0.25)
+    ems = HybridESS_OLDS(bt=bt, ht=ht, el_power=300, fc_power=350,t_start=0,t_end=1000,LIMIT_SUNNY=0.20,LIMIT_CLOUDY=0.25)
     ems.initializa()
     ele_cost = 0
     soc_ = []
@@ -476,16 +477,16 @@ if __name__ == '__main__':
             energy_sys.append(abs(ele)+abs(sto)+abs(eTs))
 
     print('HybridESS_OLDS')
-    print(ele_cost, 'grid price')
-    print(stoTopower, 'energy sto')
-    print(energyTosto, 'sto discharge')
+    # print(ele_cost, 'grid price')
     print(gridTopower, 'gridTopower')
-    #
-    test = []
-    for i in range(len(energy_diff)):
-        test.append(abs(energy_diff[i]) -abs(energy_sys[i]))
-    print(max(test),min(test))
-    print(max((energy_diff)))
-    plt.plot(list(range(len(energy_diff[:300]))),energy_diff[:300])
-    plt.plot(list(range(len(energy_diff[:300]))),test[:300])
-    plt.show()
+    print(stoTopower, 'stoTopower')
+    print(energyTosto, 'energyTosto')
+    # #
+    # test = []
+    # for i in range(len(energy_diff)):
+    #     test.append(abs(energy_diff[i]) -abs(energy_sys[i]))
+    # print(max(test),min(test))
+    # print(max((energy_diff)))
+    # plt.plot(list(range(len(energy_diff[:300]))),energy_diff[:300])
+    # plt.plot(list(range(len(energy_diff[:300]))),test[:300])
+    # plt.show()

@@ -84,6 +84,7 @@ class LionBattery(object) :
                     1 - self.sigma_BT)) * self.eta_BT_dc * self.eta_BT_conv * self.Cap_BT) / self.delta_t
         return energy
     def readSoc(self):
+        self.SOC_t = np.round(self.SOC_t,8)
         return self.SOC_t
 
     def lifetime(self):

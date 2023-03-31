@@ -18,7 +18,7 @@ class HT(object):
         self.LOH_t = None
         self.len_ = len(Cap_H2)
         self.LOH_t_max = np.array([1]*self.len_)
-        self.LOH_t_min =np.array([0.1]*self.len_)
+        self.LOH_t_min =np.array([0.2]*self.len_)
         self.loh_delta = np.zeros(self.len_)
         self.loh_dc = np.zeros(self.len_)
 

@@ -17,8 +17,8 @@ class HybridESS(object):
         self.storageToEnergy = np.zeros(self.len)
         self.energyToStorage = np.zeros(self.len)
 
-        self.el = el_power
-        self.fc = fc_power
+        self.el_power= el_power
+        self.fc_power= fc_power
 
     def initializa(self):
         self.bt.initializa()
@@ -56,131 +56,161 @@ class HybridESS(object):
                     self.energyToStorage[i] = max_charge
 
                     energyToStorage = max_charge
-                    energy = energy -max_charge
+                    energy_ = energy[i] -max_charge
 
-                    max_charge = min(self.ht.max_charge(), self.el)
-                    if energy <= max_charge:
-                        self.ht.soc(P_el=energy, P_fc=0)
-                        self.GridToEnergy = 0
-                        self.storageToEnergy = 0
-                        self.energyToStorage = energy+energyToStorage
+                    max_charge = min(self.ht.max_charge()[i],self.el_power[i])
+                    if energy_ <= max_charge:
+                        P_el[i] = energy[i]
+                        self.ht.SOC(P_el=P_el,P_fc=P_fc)
+
+                        self.GridToEnergy[i] = 0
+                        self.storageToEnergy[i] = 0
+                        self.energyToStorage[i] = energy[i]+energyToStorage
+
                     else:
-                        self.ht.soc(P_el=max_charge, P_fc=0)
-                        self.GridToEnergy = 0
-                        self.storageToEnergy = 0
-                        self.energyToStorage = max_charge+energyToStorage
-            elif energy < 0:
+                        P_el[i] = max_charge
+                        self.ht.SOC(P_el=P_el,P_fc=P_fc)
+                        self.GridToEnergy[i] = 0
+                        self.storageToEnergy[i] = 0
+                        self.energyToStorage[i] = max_charge+energyToStorage
+
+            elif energy[i] < 0:
+                P_BT_dc = np.zeros([self.bt.len_])
+                P_BT_ch = np.zeros([self.bt.len_])
+                P_fc = np.zeros([self.ht.len_])
+                P_el = np.zeros([self.ht.len_])
+
                 '放电过程'
-                SOC = self.bt.readSoc()
-                if SOC > self.bt.SOC_min:
-                    max_discharge = self.bt.max_discharge()
-                    if abs(energy) <= max_discharge:
-                        self.bt.StateOfCharge(P_BT_ch=0, P_BT_dc=abs(energy))
-                        self.GridToEnergy = 0
-                        self.storageToEnergy = abs(energy)
-                        self.energyToStorage = 0
-                    else:
+                SOC = self.bt.readSoc()[i]
+                if SOC > self.bt.SOC_min[i]:
+                    max_discharge = self.bt.max_discharge()[i]
 
-                        self.bt.StateOfCharge(P_BT_ch=0, P_BT_dc=max_discharge)
-                        energy = abs(energy) - max_discharge
+                    if abs(energy[i]) <= max_discharge:
+                        P_BT_dc[i] = abs(energy[i])
+                        self.bt.StateOfCharge1(P_BT_ch=P_BT_ch, P_BT_dc=P_BT_dc)
+                        self.bt.soc(i)
+                        self.GridToEnergy[i] = 0
+                        self.storageToEnergy[i] = abs(energy[i])
+                        self.energyToStorage[i] = 0
+                    else:
+                        P_BT_dc[i] = max_discharge
+                        self.bt.StateOfCharge1(P_BT_ch=P_BT_ch, P_BT_dc=P_BT_dc)
+                        self.bt.soc(i)
+
+                        energy_ = abs(energy[i]) - max_discharge
                         stoToenergy=max_discharge
-                        SOC = self.ht.readSOC()
-                        if SOC > self.ht.SOC_Min():
-                            max_discharge = min(self.ht.max_discharge(), self.fc)
-                            if abs(energy) <= max_discharge:
-                                self.ht.soc(P_el=0, P_fc=abs(energy))
-                                self.GridToEnergy = 0
-                                self.storageToEnergy = abs(energy)+stoToenergy
-                                self.energyToStorage = 0
+
+                        SOC = self.ht.readSOC()[i]
+                        if SOC > self.ht.SOC_Min()[i]:
+                            max_discharge = min(self.ht.max_discharge()[i],self.fc_power[i])
+                            if energy_ <= max_discharge:
+                                P_fc[i] = energy_
+                                self.ht.SOC(P_el=P_el,P_fc=P_fc)
+                                self.GridToEnergy[i] = 0
+                                self.storageToEnergy[i] = energy_ +stoToenergy
+                                self.energyToStorage[i] = 0
                             else:
-                                self.ht.soc(P_el=0, P_fc=abs(max_discharge))
-                                self.GridToEnergy = abs(energy) - max_discharge
-                                self.storageToEnergy = max_discharge+stoToenergy
-                                self.energyToStorage = 0
+                                P_fc[i] = max_discharge
+                                self.ht.SOC(P_el=P_el,P_fc=P_fc)
+                                self.GridToEnergy[i] = energy_ - max_discharge
+                                self.storageToEnergy[i] = max_discharge+stoToenergy
+                                self.energyToStorage[i] = 0
+
                         else:
-                            self.GridToEnergy = abs(energy)
-                            self.energyToStorage = 0
-                            self.storageToEnergy = stoToenergy
+
+                            self.GridToEnergy[i] = abs(energy[i]) -stoToenergy
+                            self.energyToStorage[i] = 0
+                            self.storageToEnergy[i] = stoToenergy
 
 
                 else:
-                        SOC = self.ht.readSOC()
-                        if SOC > self.ht.SOC_Min():
-                            max_discharge = min(self.ht.max_discharge(), self.fc)
-                            if abs(energy) <= max_discharge:
-                                self.ht.soc(P_el=0, P_fc=abs(energy))
-                                self.GridToEnergy = 0
-                                self.storageToEnergy = abs(energy)
-                                self.energyToStorage = 0
+                        P_fc = np.zeros([self.ht.len_])
+                        P_el = np.zeros([self.ht.len_])
+                        SOC = self.ht.readSOC()[i]
+                        if SOC > self.ht.SOC_Min()[i]:
+                            max_discharge = min(self.ht.max_discharge()[i],self.fc_power[i])
+                            if abs(energy[i]) <= max_discharge:
+
+                                P_fc[i] = abs(energy[i])
+                                self.ht.SOC(P_el=P_el, P_fc=P_fc)
+                                self.GridToEnergy[i] = 0
+                                self.storageToEnergy[i] = abs(energy[i])
+                                self.energyToStorage[i] = 0
                             else:
-                                self.ht.soc(P_el=0, P_fc=abs(max_discharge))
-                                self.GridToEnergy = abs(energy) - max_discharge
-                                self.storageToEnergy = max_discharge
-                                self.energyToStorage = 0
+                                P_fc[i] = max_discharge
+                                self.ht.SOC(P_el=P_el, P_fc=P_fc)
+
+                                self.GridToEnergy[i] = abs(energy[i]) - max_discharge
+                                self.storageToEnergy[i] = max_discharge
+                                self.energyToStorage[i] = 0
+
                         else:
-                            self.GridToEnergy = abs(energy)
-                            self.energyToStorage = 0
-                            self.storageToEnergy = 0
+                            self.GridToEnergy[i] = abs(energy[i])
+                            self.energyToStorage[i] = 0
+                            self.storageToEnergy[i] = 0
 
-            return  self.GridToEnergy, self.storageToEnergy, self.energyToStorage
-
-
-
-
+        return  self.GridToEnergy, self.storageToEnergy, self.energyToStorage
 
 
 class HybridESS_OLDS(object):
     def __init__(self, bt: LionBattery,ht:HT,el_power,fc_power,t_start, t_end, LIMIT_SUNNY, LIMIT_CLOUDY):
         self.ht = ht
         self.bt = bt
-        self.el = el_power
-        self.fc = fc_power
+        self.el_power= el_power
+        self.fc_power= fc_power
 
-        self.GridToEnergy = 0
+
         self.t_start = t_start
         self.t_end = t_end
         self.LIMIT_SUNNY = LIMIT_SUNNY
         self.LIMIT_CLOUDY = LIMIT_CLOUDY
-
-        self.dis_enable_bt = True
-        self.dis_enable_ht = True
         self.peak_enable = False
+
+        self.len = len(bt.readSoc())
+        self.GridToEnergy = np.zeros(self.len)
+        self.storageToEnergy = np.zeros(self.len)
+        self.energyToStorage = np.zeros(self.len)
+        self.dis_enable_bt = np.array([True] * self.len)
+        self.dis_enable_ht = np.array([True] * self.len)
+
+
 
     def initializa(self):
         self.ht.initializa()
         self.bt.initializa()
 
-        self.GridToEnergy = 0
-        self.storageToEnergy = 0
-        self.energyToStorage = 0
+        self.GridToEnergy = np.zeros(self.len)
+        self.storageToEnergy = np.zeros(self.len)
+        self.energyToStorage = np.zeros(self.len)
 
-        self.dis_enable_bt = True
-        self.dis_enable_ht = True
-    def enable_bt(self, time):
-        SOC = self.bt.readSoc()
+        self.dis_enable_bt = np.array([True] * self.len)
+        self.dis_enable_ht = np.array([True] * self.len)
+    def enable_bt(self, time,i):
+        SOC = self.bt.readSoc()[i]
+
         if self.t_start <= time <= self.t_end:
             if SOC > self.LIMIT_CLOUDY:
-                self.dis_enable_bt = True
+                self.dis_enable_bt[i] = True
             else:
-                self.dis_enable_bt = False
+                self.dis_enable_bt[i] = False
         else:
             if SOC > self.LIMIT_SUNNY:
-                self.dis_enable_bt = True
+                self.dis_enable_bt[i] = True
             else:
-                self.dis_enable_bt = False
+                self.dis_enable_bt[i] = False
 
-    def enable_ht(self, time):
-        SOC = self.ht.readSOC()
+    def enable_ht(self, time,i):
+        SOC = self.ht.readSOC()[i]
         if self.t_start <= time <= self.t_end:
             if SOC > self.LIMIT_CLOUDY:
-                self.dis_enable_ht = True
+                self.dis_enable_ht[i] = True
             else:
-                self.dis_enable_ht= False
+                self.dis_enable_ht[i]= False
         else:
             if SOC > self.LIMIT_SUNNY:
-                self.dis_enable_ht = True
+                self.dis_enable_ht[i] = True
             else:
-                self.dis_enable_ht = False
+                self.dis_enable_ht[i] = False
 
     def if_peak(self, time):
         if 5 <= int(time / (30 * 24)) < 9 or int(time / (30 * 24)) == 10:
@@ -206,202 +236,249 @@ class HybridESS_OLDS(object):
         return self.peak_enable
 
     def energyStorage(self, energy, time):
-        if energy >= 0:
-            "充电过程"
-            max_charge = self.bt.max_charge()
-            if energy < max_charge:
-                self.bt.StateOfCharge(P_BT_ch=energy, P_BT_dc=0)
-                self.enable_bt(time)
+        for i in range(self.len):
+            P_BT_dc = np.zeros([self.bt.len_])
+            P_BT_ch = np.zeros([self.bt.len_])
+            P_fc = np.zeros([self.ht.len_])
+            P_el = np.zeros([self.ht.len_])
 
-                self.storageToEnergy = 0
-                self.energyToStorage = energy
-                self.GridToEnergy = 0
-            else:
-                self.bt.StateOfCharge(P_BT_ch=max_charge, P_BT_dc=0)
-                self.enable_bt(time)
-                energy_bt=max_charge
-                energy = energy -max_charge
-                max_charge = min(self.ht.max_charge(), self.el)
-                if energy < max_charge:
-                    self.ht.soc(P_el=energy, P_fc=0)
-                    self.enable_ht(time)
+            if energy[i] >= 0:
+                "充电过程"
+                max_charge = self.bt.max_charge()[i]
+                if energy[i] < max_charge:
+                    P_BT_ch[i] = energy[i]
+                    self.bt.StateOfCharge1(P_BT_ch=P_BT_ch, P_BT_dc=P_BT_dc)
+                    self.bt.soc(i)
+                    self.enable_bt(time, i)
 
-                    self.storageToEnergy = 0
-                    self.energyToStorage = energy+energy_bt
-                    self.GridToEnergy = 0
+                    self.storageToEnergy[i] = 0
+                    self.energyToStorage[i] = energy[i]
+                    self.GridToEnergy[i] = 0
                 else:
-                    self.ht.soc(P_el=max_charge, P_fc=0)
-                    self.enable_ht(time)
-                    self.storageToEnergy = 0
-                    self.energyToStorage = max_charge + energy_bt
-                    self.GridToEnergy = 0
+                    P_BT_ch[i] = max_charge
+                    self.bt.StateOfCharge1(P_BT_ch=P_BT_ch, P_BT_dc=P_BT_dc)
+                    self.bt.soc(i)
 
-        else:
-            '放电过程'
-            "所有energy 要取绝对值"
-            energy = abs(energy)
-            if self.t_start <= time <= self.t_end:
-                SOC = self.bt.readSoc()
-                if SOC > self.LIMIT_CLOUDY:
-                    self.if_peak(time)
-                    if self.peak_enable:
-                        max_discharge = self.bt.max_discharge_limit(self.LIMIT_CLOUDY)
-                        if energy <= max_discharge:
-                            self.bt.StateOfCharge(P_BT_dc=energy, P_BT_ch=0)
-                            self.enable_bt(time)
+                    self.enable_bt(time,i)
 
-                            self.energyToStorage = 0
-                            self.storageToEnergy = energy
-                            self.GridToEnergy = 0
-                        else:
-                            self.bt.StateOfCharge(P_BT_dc=max_discharge, P_BT_ch=0)
-                            self.enable_bt(time)
-                            energy_bt = max_discharge
+                    energyToStorage = max_charge
+                    energy_ = energy[i] - max_charge
 
-                            energy = energy - max_discharge
-                            SOC = self.ht.readSOC()
-                            if SOC > self.LIMIT_CLOUDY:
-                                if self.peak_enable:
-                                    max_discharge = min(self.ht.max_discharge_limit(self.LIMIT_CLOUDY), self.fc)
-                                    if energy <= max_discharge:
-                                        self.ht.soc(P_el=0, P_fc=abs(energy))
-                                        self.enable_ht(time)
-                                        self.energyToStorage = 0
-                                        self.storageToEnergy = energy+energy_bt
-                                        self.GridToEnergy = 0
-                                    else:
-                                        self.ht.soc(P_el=0, P_fc=max_discharge)
-                                        self.enable_ht(time)
-                                        self.energyToStorage = 0
-                                        self.storageToEnergy = max_discharge + energy_bt
-                                        self.GridToEnergy = energy - max_discharge
-                            else:
-                                self.energyToStorage = 0
-                                self.storageToEnergy = energy_bt
-                                self.GridToEnergy = energy
+                    max_charge = min(self.ht.max_charge()[i],self.el_power[i])
+
+                    if energy_ <= max_charge:
+                        P_el[i] = energy_
+                        self.ht.SOC(P_el=P_el, P_fc=P_fc)
+                        self.enable_ht(time, i)
+
+                        self.GridToEnergy[i] = 0
+                        self.storageToEnergy[i] = 0
+                        self.energyToStorage[i] = energy_ + energyToStorage
                     else:
-                                self.energyToStorage = 0
-                                self.storageToEnergy = 0
-                                self.GridToEnergy = energy
+                        P_el[i] = max_charge
+                        self.ht.SOC(P_el=P_el, P_fc=P_fc)
+                        self.enable_ht(time, i)
+                        self.GridToEnergy[i] = 0
+                        self.storageToEnergy[i] = 0
+                        self.energyToStorage[i] = max_charge + energyToStorage
 
-                else:
-                    SOC = self.ht.readSOC()
+            else:
+                P_BT_dc = np.zeros([self.bt.len_])
+                P_BT_ch = np.zeros([self.bt.len_])
+                P_fc = np.zeros([self.ht.len_])
+                P_el = np.zeros([self.ht.len_])
+
+                '放电过程'
+                "所有energy 要取绝对值"
+
+                if self.t_start <= time <= self.t_end:
+                    SOC = self.bt.readSoc()[i]
                     if SOC > self.LIMIT_CLOUDY:
+                        self.if_peak(time)
                         if self.peak_enable:
-                            max_discharge = min(self.ht.max_discharge_limit(self.LIMIT_CLOUDY), self.fc)
-                            if energy <= max_discharge:
-                                self.ht.soc(P_el=0, P_fc=abs(energy))
-                                self.enable_ht(time)
-                                self.energyToStorage = 0
-                                self.storageToEnergy = energy
-                                self.GridToEnergy = 0
+                            max_discharge = self.bt.max_discharge_limit(self.LIMIT_CLOUDY)[i]
+                            if abs(energy[i]) <= max_discharge:
+                                P_BT_dc[i] = abs(energy[i])
+
+                                self.bt.StateOfCharge1(P_BT_dc=P_BT_dc, P_BT_ch=P_BT_ch)
+                                self.bt.soc(i)
+                                self.enable_bt(time, i)
+
+                                self.energyToStorage[i] = 0
+                                self.storageToEnergy[i] = abs(energy[i])
+                                self.GridToEnergy[i] = 0
                             else:
-                                self.ht.soc(P_el=0, P_fc=max_discharge)
-                                self.enable_ht(time)
-                                self.energyToStorage = 0
-                                self.storageToEnergy = max_discharge
-                                self.GridToEnergy = energy - max_discharge
+                                P_BT_dc[i] = max_discharge
+                                self.bt.StateOfCharge1(P_BT_dc=P_BT_dc, P_BT_ch=P_BT_ch)
+                                self.bt.soc(i)
+                                self.enable_bt(time,i)
+
+                                energy_ = abs(energy[i]) - max_discharge
+                                stoToenergy = max_discharge
+
+                                SOC = self.ht.readSOC()[i]
+                                if SOC > self.LIMIT_CLOUDY:
+                                    if self.peak_enable:
+                                        max_discharge = min(self.ht.max_discharge()[i],self.fc_power[i])
+                                        if energy_ <= max_discharge:
+                                            P_fc[i] = energy_
+                                            self.ht.SOC(P_el=P_el, P_fc=P_fc)
+                                            self.enable_ht(time, i)
+                                            self.GridToEnergy[i] = 0
+                                            self.storageToEnergy[i] = energy_ + stoToenergy
+                                            self.energyToStorage[i] = 0
+                                        else:
+                                            P_fc[i] = max_discharge
+                                            self.ht.SOC(P_el=P_el,P_fc=P_fc)
+                                            self.enable_ht(time,i)
+
+                                            self.GridToEnergy[i] = energy_ - max_discharge
+                                            self.storageToEnergy[i] = max_discharge + stoToenergy
+                                            self.energyToStorage[i] = 0
+                                else:
+                                    self.GridToEnergy[i] = energy_
+                                    self.energyToStorage[i] = 0
+                                    self.storageToEnergy[i] = stoToenergy
                         else:
-                            self.GridToEnergy = energy
-                            self.energyToStorage = 0
-                            self.storageToEnergy = 0
+                            self.GridToEnergy[i] = abs(energy[i])
+                            self.energyToStorage[i] = 0
+                            self.storageToEnergy[i] = 0
+
                     else:
-                        self.GridToEnergy = energy
-                        self.energyToStorage = 0
-                        self.storageToEnergy = 0
-            else:
-                SOC = self.bt.readSoc()
-                if SOC > self.LIMIT_SUNNY:
+                        SOC = self.ht.readSOC()[i]
+                        if SOC > self.LIMIT_CLOUDY:
+                            self.if_peak(time)
+                            if self.peak_enable:
+                                max_discharge = min(self.ht.max_discharge_limit(self.LIMIT_CLOUDY)[i], self.fc_power[i])
+                                if abs(energy[i]) <= max_discharge:
+                                    P_fc[i] = abs(energy[i])
 
-                        max_discharge = self.bt.max_discharge_limit(self.LIMIT_SUNNY)
-                        if energy <= max_discharge:
-                            self.bt.StateOfCharge(P_BT_ch=0, P_BT_dc=energy)
+                                    self.ht.SOC(P_el=P_el, P_fc=P_fc)
 
-                            self.energyToStorage = 0
-                            self.GridToEnergy = 0
-                            self.storageToEnergy = energy
-                            self.enable_bt(time)
-                        else:
-                            self.bt.StateOfCharge(P_BT_ch=0, P_BT_dc=max_discharge)
-                            self.enable_bt(time)
 
-                            energy_bt =max_discharge
 
-                            energy = energy - max_discharge
+                                    self.energyToStorage[i] = 0
+                                    self.storageToEnergy[i] = abs(energy[i])
+                                    self.GridToEnergy[i] = 0
+                                    self.enable_ht(time,i)
+                                else:
+                                    P_fc[i] = max_discharge
+                                    self.ht.SOC(P_el=P_el, P_fc=P_fc)
+                                    self.enable_ht(time,i)
 
-                            SOC = self.ht.readSOC()
-                            if SOC > self.LIMIT_SUNNY:
-
-                                    max_discharge = min(self.ht.max_discharge_limit(self.LIMIT_SUNNY), self.fc)
-                                    if energy <= max_discharge:
-                                        self.ht.soc(P_el=0, P_fc=abs(energy))
-
-                                        self.energyToStorage = 0
-                                        self.GridToEnergy = 0
-                                        self.storageToEnergy = energy+energy_bt
-
-                                        self.enable_ht(time)
-                                    else:
-
-                                        self.ht.soc(P_el=0, P_fc=max_discharge)
-                                        self.enable_ht(time)
-
-                                        self.energyToStorage = 0
-                                        self.GridToEnergy = energy - max_discharge
-                                        self.storageToEnergy = max_discharge+energy_bt
-
+                                    self.energyToStorage[i] = 0
+                                    self.GridToEnergy[i] = abs(energy[i]) - max_discharge
+                                    self.storageToEnergy[i] = max_discharge
                             else:
-                                self.GridToEnergy = energy
-                                self.energyToStorage = 0
-                                self.storageToEnergy = energy_bt
+                                self.GridToEnergy[i] = abs(energy[i])
+                                self.energyToStorage[i] = 0
+                                self.storageToEnergy[i] = 0
+                        else:
+                            self.GridToEnergy[i] = abs(energy[i])
+                            self.energyToStorage[i] = 0
+                            self.storageToEnergy[i] = 0
                 else:
-                    SOC = self.ht.readSOC()
+                    SOC = self.bt.readSoc()[i]
                     if SOC > self.LIMIT_SUNNY:
 
-                            max_discharge = min(self.ht.max_discharge_limit(self.LIMIT_SUNNY), self.fc)
-                            if energy <= max_discharge:
-                                self.ht.soc(P_el=0, P_fc=abs(energy))
+                        max_discharge = self.bt.max_discharge_limit(self.LIMIT_SUNNY)[i]
 
-                                self.energyToStorage = 0
-                                self.GridToEnergy = 0
-                                self.storageToEnergy = energy
+                        if abs(energy[i]) <= max_discharge:
+                                P_BT_dc[i] = abs(energy[i])
+                                self.bt.StateOfCharge1(P_BT_ch=P_BT_ch, P_BT_dc=P_BT_dc)
+                                self.bt.soc(i)
+                                self.enable_bt(time,i)
+                                self.GridToEnergy[i] = 0
+                                self.storageToEnergy[i] = abs(energy[i])
+                                self.energyToStorage[i] = 0
+                                self.enable_ht(time,i)
+                        else:
+                                P_BT_dc[i] = max_discharge
+                                self.bt.StateOfCharge1(P_BT_ch=P_BT_ch, P_BT_dc=P_BT_dc)
+                                self.bt.soc(i)
+                                self.enable_bt(time,i)
 
-                                self.enable_ht(time)
-                            else:
-                                self.ht.soc(P_el=0, P_fc=max_discharge)
-                                self.enable_ht(time)
+                                energy_ = abs(energy[i]) - max_discharge
+                                stoToenergy = max_discharge
 
-                                self.energyToStorage = 0
-                                self.GridToEnergy = energy - max_discharge
-                                self.storageToEnergy = max_discharge
+                                SOC = self.ht.readSOC()[i]
+                                if SOC > self.LIMIT_SUNNY:
 
+                                        max_discharge = min(self.ht.max_discharge_limit(self.LIMIT_SUNNY)[i],self.fc_power[i])
+                                        if energy_ <= max_discharge:
+                                            P_fc[i] = energy_
+                                            self.ht.SOC(P_el=P_el, P_fc=P_fc)
+                                            self.enable_ht(time,i)
+                                            self.GridToEnergy[i] = 0
+                                            self.storageToEnergy[i] = energy_ + stoToenergy
+                                            self.energyToStorage[i] = 0
+
+
+                                        else:
+
+                                            P_fc[i] = max_discharge
+                                            self.ht.SOC(P_el=P_el, P_fc=P_fc)
+                                            self.enable_ht(time,i)
+
+                                            self.GridToEnergy[i] = energy_ - max_discharge
+                                            self.storageToEnergy[i] = max_discharge + stoToenergy
+                                            self.energyToStorage[i] = 0
+
+                                else:
+                                    self.GridToEnergy[i] = energy_
+                                    self.energyToStorage[i] = 0
+                                    self.storageToEnergy[i] = stoToenergy
                     else:
-                        self.GridToEnergy = energy
-                        self.energyToStorage = 0
-                        self.storageToEnergy = 0
+                        P_fc = np.zeros([self.ht.len_])
+                        P_el = np.zeros([self.ht.len_])
+                        SOC = self.ht.readSOC()[i]
+                        if SOC > self.LIMIT_SUNNY:
+
+                                max_discharge = min(self.ht.max_discharge()[i],self.fc_power[i])
+                                if abs(energy[i]) <= max_discharge:
+                                    P_fc[i] = abs(energy[i])
+                                    self.ht.SOC(P_el=P_el, P_fc=P_fc)
+
+                                    self.GridToEnergy[i] = 0
+                                    self.storageToEnergy[i] = abs(energy[i])
+                                    self.energyToStorage[i] = 0
+
+                                    self.enable_ht(time,i)
+                                else:
+                                    P_fc[i] = max_discharge
+                                    self.ht.SOC(P_el=P_el, P_fc=P_fc)
+                                    self.enable_ht(time,i)
+
+                                    self.GridToEnergy[i] = abs(energy[i]) - max_discharge
+                                    self.storageToEnergy[i] = max_discharge
+                                    self.energyToStorage[i] = 0
+                        else:
+                            self.GridToEnergy[i] = abs(energy[i])
+                            self.energyToStorage[i] = 0
+                            self.storageToEnergy[i] = 0
         return self.GridToEnergy, self.storageToEnergy, self.energyToStorage
 
-def device_init():
+def device_init(in_:np.array):
     pd_load, pd_price, pd_wea_wind, pd_wea_G_dir, pd_wea_G_diff, pd_wea_T, pd_wea_G_hor = data_load()
 
-    pv_cap  = 650
+    pv_cap  = in_[:,0]
+    print(pv_cap,'PV_CAP')
     pv =PVSystem(pv_cap,pd_wea_T=pd_wea_T,pd_wea_G_dir=pd_wea_G_dir,pd_wea_G_diff=pd_wea_G_diff,pd_wea_G_hor=pd_wea_G_hor)
 
-    bt_cap = 600
-    bt = LionBattery(bt_cap,eta_BT_conv=0.98)
+    bt_cap = in_[:, 1]
+    print(bt_cap, 'BT_CAP')
+    bt = LionBattery(bt_cap, eta_BT_conv=0.98)
     bt.initializa()
 
-    el_cap = 15
-    el  =PEM()
-    el_n = math.ceil(el_cap/el.max_power())
+    el_power = in_[:,2]
+    print(el_power,'el_power')
 
-    fc_cap =15
-    fc = PEMFC()
-    fc_n  =math.ceil(fc_cap/fc.max_power())
-
-    ht_cap = 2000
-    ht = HT(ht_cap,eta_FC=0.6,eta_EL=0.86,delta_t=1)
+    fc_power= in_[:,3]
+    ht_cap  = in_[:,4]
+    print(ht_cap,'ht_cap')
+    ht = HT(Cap_H2=ht_cap)
     ht.initializa()
+    print(fc_power,'fc_power')
     pv_output =[]
     R_init = 0
     for i in range(8760):
@@ -410,100 +487,110 @@ def device_init():
 
 
 
-    return pv,bt,el,el_n,fc,fc_n,ht,pd_load,pd_price,pv_output,R_init
+    return pv,bt,el_power,fc_power,ht,pd_load,pd_price,pv_output,R_init
+def energy_management(project_lifetime:int,life_time:int,bt:LionBattery,ht:HT,el:np.array,fc:np.array,pv_output:np.array,pd_load):
+    res_output = pv_output
+
+
+    ems  =HybridESS (bt=bt,ht=ht,el_power=el,fc_power=fc)
+
+    ems.initializa()
+    ele_cost = 0
+    soc_ = []
+    gridTopower = 0
+    stoTopower = 0
+    energyTosto = 0
+    energy_BESS = []
+    energy_BESS_OLDS = []
+    soc_BESS = []
+    soc_BESS_OLDS = []
+    ele_all = 0
+    energy_sto = []
+    energy_sto_dis = []
+    for y in range(project_lifetime):
+        for i in range(life_time):
+
+
+            energy = res_output[i] - pd_load[i]
+            energy = np.round(energy,8)
+            # print(energy,'energy')
+            # print(energy.shape)
+            soc_.append(ht.readSOC())
+            soc_BESS.append(ht.readSOC())
+            ele, sto, eTs = ems.energyStorage(energy)
+            gridTopower += ele
+            stoTopower += sto
+            energyTosto += eTs
+            energy_BESS.append(ele)
+            ele_cost += ele * grid_price(i)
+            ele_all += pd_load[i]
+            energy_sto.append(eTs)
+            energy_sto_dis.append(sto)
+    print(ht.LOH_t)
+    a = bt.readSoc()
+    print(a,'soc')
+    return gridTopower,stoTopower,energyTosto,ele_cost,ele_all
+def energy_management_OLDS(project_lifetime:int,life_time:int,bt,ht:HT,el:np.array,fc:np.array,pv_output:np.array,pd_load,
+                           t_start,t_end,limit_cloudy,limit_sunny,):
+    res_output = pv_output
+
+
+    ems  = HybridESS_OLDS(bt=bt,ht=ht,el_power=el,fc_power=fc,t_start=t_start,t_end=t_end,LIMIT_CLOUDY=limit_cloudy,LIMIT_SUNNY=limit_sunny)
+    ems.initializa()
+    ele_cost = 0
+    soc_ = []
+    gridTopower = 0
+    stoTopower = 0
+    energyTosto = 0
+    energy_BESS = []
+    energy_BESS_OLDS = []
+    soc_BESS = []
+    soc_BESS_OLDS = []
+    ele_all = 0
+    energy_sto = []
+    energy_sto_dis = []
+    for y in range(project_lifetime):
+        for i in range(life_time):
+
+
+            energy = res_output[i] - pd_load[i]
+            energy = np.round(energy,8)
+            # print(energy,'energy')
+            # print(energy.shape)
+            soc_.append(ht.readSOC())
+            soc_BESS.append(ht.readSOC())
+            ele, sto, eTs = ems.energyStorage(energy,i)
+            gridTopower += ele
+            stoTopower += sto
+            energyTosto += eTs
+            energy_BESS.append(ele)
+            ele_cost += ele * grid_price(i)
+            ele_all += pd_load[i]
+            energy_sto.append(eTs)
+            energy_sto_dis.append(sto)
+    return gridTopower,stoTopower,energyTosto,ele_cost,ele_all
 
 
 if __name__ == '__main__':
-    pv, bt, el, el_n, fc, fc_n, ht, pd_load, pd_price, pv_output, R_init = device_init()
     project_lifetime = 25
     life_time = 8760
-    ems = HybridESS(bt=bt, ht=ht, el_power=230, fc_power=240
-                    )
-    ems.initializa()
-    ele_cost = 0
-    soc_ = []
-    gridTopower = 0
-    stoTopower = 0
-    energyTosto = 0
-    energy_HESS = []
-    energy_HESS_OLDS = []
-    soc_HESS = []
-    soc_HESS_OLDS = []
-    energy_ch = []
-    energy_dis = []
-    energy_diff = []
-    energy_sys = []
-    for y in range(project_lifetime):
-        for i in range(life_time):
-            energy = pv_output[i] - pd_load[i]
-            energy_diff.append(energy)
-            soc_.append(ht.readSOC())
-            soc_HESS.append(ht.readSOC())
-            ele, sto, eTs = ems.energyStorage(energy)
-            energy_sys.append(abs(ele) + abs(sto) + abs(eTs))
-            energy_ch.append(eTs)
-            gridTopower += ele
-            ele_cost += ele * grid_price(i)
-            stoTopower += sto
-            energyTosto += eTs
-            energy_dis.append(sto)
-    test1 = []
-    for i in range(len(energy_diff)):
-        test1.append(abs(energy_diff[i]) - abs(energy_sys[i]))
-    print(max(test1), min(test1))
-    print(max((energy_diff)))
-    plt.plot(list(range(len(energy_diff[:300]))), energy_diff[:300])
-    plt.plot(list(range(len(energy_diff[:300]))), test1[:300])
-    plt.show()
+    ' PV BT EL FC HT'
+    in_ = np.array([[450, 600,300, 350, 1000], [450, 600,300, 350, 1000]])
+    pv, bt, el_power, fc_power, ht, pd_load, pd_price, pv_output, R_init = device_init(in_)
+    gridTopower, stoTopower, energyTosto, ele_cost, ele_all = energy_management(project_lifetime=project_lifetime,
+                                                                                     life_time=life_time,bt=bt, ht=ht,
+                                                                                     pv_output=pv_output,
+                                                                                     pd_load=pd_load,el=el_power,fc=fc_power)
+    # gridTopower, stoTopower, energyTosto, ele_cost, ele_all = energy_management_OLDS(project_lifetime=project_lifetime,
+    #                                                                                  life_time=life_time,bt=bt, ht=ht,
+    #                                                                                  pv_output=pv_output,
+    #                                                                                  pd_load=pd_load,el=el_power,fc=fc_power,t_start=0,t_end=1000,
+    #                                                                                  limit_sunny=0.2,limit_cloudy=0.25)
+    print(ele_cost)
+    print(gridTopower,'gridTopower')
+    print(stoTopower,'stoTopower')
+    print(energyTosto,'energyTosto')
 
-    print('HybridESS')
-    print(ele_cost, 'grid price')
-    print(stoTopower, 'energy sto')
-    print(energyTosto, 'sto discharge')
-    print(gridTopower, 'gridTopower')
-    #
-    ems = HybridESS_OLDS(bt=bt, ht=ht, el_power=230, fc_power=240, t_start=0, t_end=1000, LIMIT_SUNNY=0.20,
-                         LIMIT_CLOUDY=0.25)
-    ems.initializa()
-    ele_cost = 0
-    soc_ = []
-    gridTopower = 0
-    stoTopower = 0
-    energyTosto = 0
-    energy_HESS = []
-    energy_HESS_OLDS = []
-    soc_HESS = []
-    soc_HESS_OLDS = []
-    energy_ch = []
-    energy_dis = []
-    energy_diff = []
-    energy_sys = []
-    for y in range(project_lifetime):
-        for i in range(life_time):
-            energy = pv_output[i] - pd_load[i]
-            soc_.append(ht.readSOC())
-            soc_HESS.append(ht.readSOC())
-            ele, sto, eTs = ems.energyStorage(energy, i)
-            energy_ch.append(eTs)
-            gridTopower += ele
-            ele_cost += ele * grid_price(i)
-            stoTopower += sto
-            energyTosto += eTs
-            energy_dis.append(sto)
-            energy_diff.append((energy))
-            energy_sys.append(abs(ele) + abs(sto) + abs(eTs))
 
-    print('HybridESS_OLDS')
-    print(ele_cost, 'grid price')
-    print(stoTopower, 'energy sto')
-    print(energyTosto, 'sto discharge')
-    print(gridTopower, 'gridTopower')
-    #
-    test = []
-    for i in range(len(energy_diff)):
-        test.append(abs(energy_diff[i]) - abs(energy_sys[i]))
-    print(max(test), min(test))
-    print(max((energy_diff)))
-    plt.plot(list(range(len(energy_diff[:300]))), energy_diff[:300])
-    plt.plot(list(range(len(energy_diff[:300]))), test[:300])
-    plt.show()
+
+
