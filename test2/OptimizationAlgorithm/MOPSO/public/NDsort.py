@@ -1,5 +1,5 @@
 import numpy as np
-from public import sortrows
+from test2.OptimizationAlgorithm.MOPSO.public import sortrows
 
 def NDSort(PopObj,Remain_Num):
     print(PopObj,'PopObj')

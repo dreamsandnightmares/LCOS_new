@@ -1,13 +1,13 @@
 #encoding: utf-8
 import numpy as np
-from Mopso import *
-from public import  P_objective
-from Mopso_res import *
+from test2.OptimizationAlgorithm.bt.Mopso_res_bt import Mopso_res
+from test2.OptimizationAlgorithm.MOPSO.public.P_objective import  P_objective
+from Mopso_res_bt import *
 
  
 def main():
 
-    particals = 3 #粒子群的数量
+    particals = 2 #粒子群的数量
     cycle_ = 2 #迭代次数
     mesh_div = 10 #网格等分数量
     thresh = 300#外部存档阀值
@@ -24,7 +24,7 @@ def main():
     M = 2
     # Population, Boundary, Coding = P_objective.P_objective("init", Problem, M, particals)
     # # print(Boundary)
-    Boundary = np.array([[5000.,5000.],[1000.,1000.]])
+    Boundary = np.array([[1500.,2000.],[600.,600.]])
     print(type(Boundary))
     ''
     # Boundary =
@@ -41,8 +41,8 @@ def main():
 
     np.savetxt(r"C:\Users\王晨浩\Desktop\LCOS\test2\OptimizationAlgorithm\pareto_in.txt",pareto_in)#保存pareto边界粒子的坐标
     np.savetxt(r"C:\Users\王晨浩\Desktop\LCOS\test2\OptimizationAlgorithm\pareto_fitness.txt",pareto_fitness) #打印pareto边界粒子的适应值
-    print ("\n","pareto边界的坐标保存于：/img_txt/pareto_in.txt")
-    print ("pareto边界的适应值保存于：/img_txt/pareto_fitness.txt")
+    print ("\n","pareto边界的坐标保存于：/img_txt/pareto_in_olds.txt")
+    print ("pareto边界的适应值保存于：/img_txt/pareto_fitness_olds.txt")
     print ("\n,迭代结束,over")
 
 

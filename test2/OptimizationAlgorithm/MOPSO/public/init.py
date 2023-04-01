@@ -1,7 +1,7 @@
 #encoding: utf-8
 import random
 import numpy as np
-from public import pareto,NDsort
+from test2.OptimizationAlgorithm.MOPSO.public import pareto,NDsort
 
 
 def init_designparams(particals,in_min,in_max):

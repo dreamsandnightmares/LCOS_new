@@ -2,7 +2,7 @@ import math
 
 
 def ssr(P_grid,P_load):
-    return (1-(P_grid/P_load))
+    return ((P_grid/P_load))
 
 def NPV(r_0,r_bess,cost_bt,cost_h2,cost_el,cost_fc,li_cap,h2_cap,el_cap
         ,fc_cap,cost_om,project_time):

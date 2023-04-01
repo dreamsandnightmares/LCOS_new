@@ -1,9 +1,9 @@
 #encoding: utf-8
 import numpy as np
-from public import init,update,plot,P_objective
+from test2.OptimizationAlgorithm.MOPSO.public import init,update,plot,P_objective
 
 import time
-from public import ma_obj_test
+from test2.OptimizationAlgorithm.MOPSO.public import ma_obj_test
 
 class Mopso_res:
     def __init__(self,particals,max_,min_,thresh,cost_pv,cost_bt,project_lifetime,life_time,mesh_div=10):
@@ -35,6 +35,21 @@ class Mopso_res:
         self.fitness_ = ma_obj_test.fitness(self.in_,cost_pv=self.cost_pv,cost_bt=self.cost_bt,
                                          project_lifetime=self.project_lifetime,life_time=self.life_time)
         print(self.fitness_,'fitness')
+    def evaluation_fitness_olds(self):
+        '只输出 函数值'
+        # self.fitness_ = P_objective.P_objective("value", "DTLZ2", 2, self.in_)
+        print(self.in_,'in')
+        self.fitness_ = ma_obj_test.fitness(self.in_,cost_pv=self.cost_pv,cost_bt=self.cost_bt,
+                                         project_lifetime=self.project_lifetime,life_time=self.life_time)
+        print(self.fitness_,'fitness')
+
+    def evaluation_fitness_olds(self):
+        '只输出 函数值'
+        # self.fitness_ = P_objective.P_objective("value", "DTLZ2", 2, self.in_)
+        print(self.in_,'in')
+        self.fitness_ = ma_obj_test.fitness(self.in_,cost_pv=self.cost_pv,cost_bt=self.cost_bt,
+                                         project_lifetime=self.project_lifetime,life_time=self.life_time)
+        print(self.fitness_,'fitness')
 
     def initialize(self):
 
@@ -46,7 +61,7 @@ class Mopso_res:
         #初始化粒子速度
         self.v_ = init.init_v(self.particals,self.max_v,self.min_v)
         #计算适应度ֵ
-        self.evaluation_fitness()
+        self.evaluation_fitness_olds()
         '更新 fitness'
         #初始化个体最优
 
@@ -67,7 +82,7 @@ class Mopso_res:
         self.v_ = update.update_v(self.v_,self.min_v,self.max_v,self.in_,self.in_p,self.in_g)
         self.in_ = update.update_in(self.in_,self.v_,self.min_,self.max_)
 
-        self.evaluation_fitness()
+        self.evaluation_fitness_olds()
 
         self.in_p,self.fitness_p = update.update_pbest(self.in_,self.fitness_,self.in_p,self.fitness_p)
 

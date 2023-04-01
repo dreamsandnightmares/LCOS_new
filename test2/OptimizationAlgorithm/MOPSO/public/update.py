@@ -1,7 +1,7 @@
 #encoding: utf-8
 import numpy as np
 import random
-from  public import NDsort
+from test2.OptimizationAlgorithm.MOPSO.public import NDsort
 
 def update_v(v_,v_min,v_max,in_,in_pbest,in_gbest):
     #更新速度ٶ�ֵ

@@ -10,7 +10,7 @@ from FC.normalFC import PEMFC
 from HT.hydrogenStorage import HT
 from price.gridPrice import grid_price
 from bt.MABattey import LionBattery
-from EMS.maBEMS import BEMS
+from EMS.maBEMS import BEMS_OLDS
 
 
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ import math
 
 
 def ssr(P_grid, P_load):
-    return (1 - (P_grid / P_load))
+    return ( (P_grid / P_load))
 
 def device_init(pv_cap:np.array,bt_cap :np.array):
     pd_load, pd_price, pd_wea_wind, pd_wea_G_dir, pd_wea_G_diff, pd_wea_T, pd_wea_G_hor = data_load()
@@ -146,7 +146,7 @@ def energy_management(project_lifetime:int,life_time:int,bt:np.array,pv_output:n
     res_output = pv_output
 
 
-    ems  = BEMS(bt=bt)
+    ems  = BEMS_OLDS(bt=bt,t_start=4000,t_end=6000,LIMIT_CLOUDY=0.25,LIMIT_SUNNY=0.2)
     ems.initializa()
     ele_cost = 0
     soc_ = []
@@ -169,7 +169,7 @@ def energy_management(project_lifetime:int,life_time:int,bt:np.array,pv_output:n
             # print(energy.shape)
             soc_.append(bt.readSoc())
             soc_BESS.append(bt.readSoc())
-            ele, sto, eTs = ems.energyStorage(energy)
+            ele, sto, eTs = ems.energyStorage(energy,i)
             gridTopower += ele
             stoTopower += sto
             energyTosto += eTs
@@ -189,7 +189,7 @@ def fitness(in_,cost_pv,cost_bt,project_lifetime,life_time):
                                                                                 pv_output=pv_output, pd_load=pd_load, )
 
     Lcoe = lcoe(cost_pv=cost_pv, cost_bt=cost_bt, li_cap=bt_cap, pv_cap=pv_cap, project_time=project_lifetime,
-                energy=(ele_all - gridTopower), ele_cost=ele_cost)
+                energy=(ele_all), ele_cost=ele_cost)
     SSR = ssr(gridTopower, ele_all)
     obj = np.array(list(zip(Lcoe,SSR)))
 

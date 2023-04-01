@@ -1,5 +1,5 @@
 from data_load.data_load import data_load
-
+from PV.PVModel import PVSystem
 
 def grid_price(time):
     price = 0
@@ -50,10 +50,21 @@ if __name__ == '__main__':
     pd_load, pd_price, pd_wea_wind, pd_wea_G_dir, pd_wea_G_diff, pd_wea_T, pd_wea_G_hor = data_load()
     grid_cost =0
     load_all = 0
-    for i in range(8670):
+    for i in range(8760):
         GridPrice = grid_price(i)
         load_all+=pd_load[i]
         grid_cost+=pd_load[i]*GridPrice
     print(grid_cost*25)
-    print(load_all*25)
+    x = PVSystem(P_PV_rated=900, pd_wea_T=pd_wea_T, pd_wea_G_dir=pd_wea_G_dir, pd_wea_G_diff=pd_wea_G_diff,
+                 pd_wea_G_hor=pd_wea_G_hor)
+    c = 0
+    a = []
+
+    for i in range(8760):
+        a.append(x.PVpower(i))
+
+        c += x.PVpower(i)
+    print(c,'pv_all')
+    print(load_all)
+
 

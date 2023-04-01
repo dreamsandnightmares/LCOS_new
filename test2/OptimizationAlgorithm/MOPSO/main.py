@@ -1,8 +1,7 @@
 #encoding: utf-8
-import numpy as np
 from Mopso import *
 from public import  P_objective
-from Mopso_res import *
+from test2.OptimizationAlgorithm.bt.Mopso_res_bt import *
 
  
 def main():

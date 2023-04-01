@@ -31,8 +31,8 @@ class Plot_pareto:
         ax3 = fig.add_subplot(111)#133
         # ax3.set_xlim((0,1))
         # ax3.set_ylim((0,1))
-        ax3.set_xlabel('fitness_y1')
-        ax3.set_ylabel('fitness_y2')
+        ax3.set_xlabel('LCOE')
+        ax3.set_ylabel('SSR')
         ax3.scatter(fitness_[:,0],fitness_[:,1],s=10, c='blue', marker=".")
         ax3.scatter(archive_fitness[:,0],archive_fitness[:,1],s=30, c='red', marker=".",alpha = 1.0)
         plt.show()
