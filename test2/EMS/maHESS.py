@@ -370,10 +370,10 @@ if __name__ == '__main__':
 
     pv,el,fc,ht,pd_load,pd_price,pv_output,R_init= device_init(in_)
 
-    # gridTopower, stoTopower, energyTosto, ele_cost, ele_all = energy_management(project_lifetime=project_lifetime,
-    #                                                                                  life_time=life_time, ht=ht,
-    #                                                                                  pv_output=pv_output,
-    #                                                                                  pd_load=pd_load,el=el,fc=fc)
+    gridTopower, stoTopower, energyTosto, ele_cost, ele_all = energy_management(project_lifetime=project_lifetime,
+                                                                                     life_time=life_time, ht=ht,
+                                                                                     pv_output=pv_output,
+                                                                                     pd_load=pd_load,el=el,fc=fc)
     gridTopower, stoTopower, energyTosto, ele_cost, ele_all = energy_management_OLDS(project_lifetime=project_lifetime,
                                                                                 life_time=life_time, ht=ht,
                                                                                 pv_output=pv_output,

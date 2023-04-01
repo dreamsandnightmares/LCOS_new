@@ -7,7 +7,7 @@ class HT(object):
             Hydrogen tank
     """
 
-    def __init__(self, Cap_H2, eta_FC=0.6, eta_EL=0.96, delta_t=1):
+    def __init__(self, Cap_H2, eta_FC=0.6, eta_EL=0.7, delta_t=1):
         # 设置LOH max 与min 没有查到相关数据
 
         self.Cap_H2 = Cap_H2
